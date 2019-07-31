@@ -1,13 +1,20 @@
 '''
 Scraping Air Temperature and Rainfall Data from Data.gov.sg v1
-Developer: Ong Chin Hwee, AKindSoul
+Developer: Ong Chin Hwee (@hweecat), AKindSoul
+Language: Python 3.7.3
 
-This data scraping script was initially developed as a personal project to scrap
-NEA meteorological data from Data.gov.sg APIs. The developer of this script has 
+This data scraping script is developed as a personal project to scrap NEA 
+meteorological data from Data.gov.sg APIs. The project initiator (@hweecat) has 
 active plans to expand this personal project to scrap data from other NEA Dataset 
-APIs. This script was adapted from the developer's own PM2.5 Data Scraping codebase
-on her personal GitHub repository (Meteorological Data from NEA via Data.gov.sg APIs),
-which is currently being actively updated to include scraping from other NEA dataset APIs.
+APIs. 
+
+Currently, this script is able to scrap data from the following APIs:
+1. Realtime Weather Readings across Singapore
+    a. Air Temperature across Singapore
+    b. Rainfall across Singapore
+
+This script is currently being actively updated to include scraping from other
+NEA dataset APIs.
 '''
 
 import numpy as np
@@ -135,7 +142,8 @@ for reading in trange(len(df_data['readings'])):
     df_to_append_null_filled = df_to_append.reset_index(drop=True)
     df_reading.append(df_to_append_null_filled)
 
-    sleep(0.01)
+    if (reading % 10 == 0):
+        sleep(0.1)
     
 # concatenate dataframes in list within date range    
 df_extracted = pd.concat(df_reading)
