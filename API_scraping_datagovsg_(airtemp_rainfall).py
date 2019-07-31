@@ -1,6 +1,6 @@
 '''
 Scraping Air Temperature and Rainfall Data from Data.gov.sg v1
-Developer: Ong Chin Hwee
+Developer: Ong Chin Hwee, AKindSoul
 
 This data scraping script was initially developed as a personal project to scrap
 NEA meteorological data from Data.gov.sg APIs. The developer of this script has 
