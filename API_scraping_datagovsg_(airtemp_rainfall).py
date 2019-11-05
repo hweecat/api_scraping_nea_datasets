@@ -133,9 +133,10 @@ try:
     df_data = get_data_from_date_range(date_list, data_type)
 
     # Get device ID dataframe
-    df_device_id = get_device_id(date_list[0], data_type)
+    df_device_id = pd.concat([get_device_id(date, data_type) for date in date_list])
     # Create dictionary of station IDs for switch case to initialize station ID
-    device_id_dict = df_device_id[['device_id', 'id']].set_index('device_id')['id'].to_dict()
+    device_id_list = set(df_device_id[['device_id', 'id']].set_index('device_id')['id'])
+    device_id_dict = {id:id for id in device_id_list}
 
     # Initialize device ID to select from extracted data
     stationid_entry = input('The station IDs are: \n' + str(list(device_id_dict.keys())) + '\nChoose station ID to extract data from: ')
@@ -144,7 +145,7 @@ try:
         stationid_choice = device_id_dict.get(stationid_choice, None)
         if stationid_choice == None:
             stationid_entry = input('Invalid station ID. Please choose station ID to extract data from: ')
-            stationid_choice = str(datatype_entry)
+            stationid_choice = str(stationid_entry)
         else:
             break
 
@@ -171,7 +172,8 @@ try:
     df_extracted_cleaned = pd.concat([df_data, df_extracted_stationid], axis=1).drop(columns=['readings'])
 
     # Convert from UTC Time to SGT Time
-    df_extracted_cleaned['timestamp'] = [utc_to_local(dt) for dt in df_extracted_cleaned['timestamp']]
+    if not int((pd.__version__).split('.')[1]) >= 25:
+        df_extracted_cleaned['timestamp'] = [utc_to_local(dt) for dt in df_extracted_cleaned['timestamp']]
 
     # write to CSV
     df_extracted_cleaned.to_csv('nea_' + data_type + '_' + stationid_choice + '_from_' + str(date_list[0]) + '_to_' + str(date_list[-1]) + '.csv')
