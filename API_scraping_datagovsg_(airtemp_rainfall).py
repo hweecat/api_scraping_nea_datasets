@@ -52,11 +52,15 @@ def get_rainfall_data_from_date(date):
 def get_data_from_date_range(date_range, data_type):
     df_date_list = []
     for date in date_range:
-        if data_type == 'air-temperature':
-            df_date = get_airtemp_data_from_date(str(date))
-        elif data_type == 'rainfall':
-            df_date = get_rainfall_data_from_date(str(date))
+        try:
+            if data_type == 'air-temperature':
+                df_date = get_airtemp_data_from_date(str(date))
+            elif data_type == 'rainfall':
+                df_date = get_rainfall_data_from_date(str(date))
+        except ValueError:
+            continue
         df_date_list.append(df_date)
+        sleep(0.1)
     return pd.concat(df_date_list).reset_index()
 
 def get_device_id(date, data_type):
