@@ -134,7 +134,10 @@ try:
             datatype_choice = int(datatype_entry)
 
     # Extract daily data from Data.gov.sg API for a defined date range, represented in JSON format
-    df_data = get_data_from_date_range(date_list, data_type)
+    try:
+        df_data = get_data_from_date_range(date_list, data_type)
+    except Exception as e:
+        print(e)
 
     # Get device ID dataframe
     df_device_id = pd.concat([get_device_id(date, data_type) for date in date_list])
