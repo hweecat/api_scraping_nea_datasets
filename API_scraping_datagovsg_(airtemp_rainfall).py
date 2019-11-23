@@ -29,6 +29,8 @@ import pytz
 from tqdm import trange
 from time import sleep
 
+import pickle
+
 import sys
 
 def get_airtemp_data_from_date(date):
@@ -140,7 +142,13 @@ try:
         print(e)
 
     # Get device ID dataframe
-    df_device_id = pd.concat([get_device_id(date, data_type) for date in date_list])
+    try:
+        with open('df_device_id.pickle', 'rb') as f:
+            df_device_id = pickle.load(f)
+    except:
+        df_device_id = pd.concat([get_device_id(date, data_type) for date in date_list])
+        with open('df_device_id.pickle', 'wb') as f:
+            pickle.dump(df_device_id, f)
     # Create dictionary of station IDs for switch case to initialize station ID
     device_id_list = set(df_device_id[['device_id', 'id']].set_index('device_id')['id'])
     device_id_dict = {id:id for id in device_id_list}
