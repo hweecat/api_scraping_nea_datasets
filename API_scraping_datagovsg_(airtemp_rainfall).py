@@ -73,6 +73,18 @@ def get_device_id(date, data_type):
     df_device_id = pd.read_json(json_device_id, orient="object")
     return df_device_id
 
+# create list of dataframes containing extracted reading values converted from JSON format
+def df_data_from_json_to_df(reading):
+    df_to_append = pd.DataFrame(list(df_data['readings'][reading]))
+
+    # fill in null values for station ids without reading values for some timestamps
+    for station_id in list(df_device_id['id']):
+        if station_id not in list(df_to_append['station_id']):
+            df_to_append = df_to_append.append(pd.DataFrame({"station_id":[station_id], "value": [np.nan]}))      
+    df_to_append_null_filled = df_to_append.reset_index().drop(columns=['index']).reset_index(drop=True)
+
+    return df_to_append_null_filled
+
 def utc_to_local(dt):
     local_tz = pytz.timezone('UTC')
     dt = local_tz.localize(dt)
@@ -165,19 +177,7 @@ try:
             break
 
     # create list of dataframes containing extracted reading values converted from JSON format
-    df_reading = []
-    for reading in trange(len(df_data['readings'])):
-        df_to_append = pd.DataFrame(list(df_data['readings'][reading]))
-
-        # fill in null values for station ids without reading values for some timestamps
-        for station_id in list(df_device_id['id']):
-            if station_id not in list(df_to_append['station_id']):
-                df_to_append = df_to_append.append(pd.DataFrame({"station_id":[station_id], "value": [np.nan]}))      
-        df_to_append_null_filled = df_to_append.reset_index().drop(columns=['index']).reset_index(drop=True)
-        df_reading.append(df_to_append_null_filled)
-
-        if reading % 10 == 0:
-            sleep(0.1)
+    df_reading = [df_data_from_json_to_df(reading) for reading in trange(len(df_data['readings']))]
         
     # concatenate dataframes in list within date range    
     df_extracted = pd.concat(df_reading)
