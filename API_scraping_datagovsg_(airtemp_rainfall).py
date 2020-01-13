@@ -33,6 +33,9 @@ import pickle
 
 import sys
 
+from retrying import retry
+
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def get_airtemp_data_from_date(date):
     url = "https://api.data.gov.sg/v1/environment/air-temperature?date=" + str(date) # for daily API request
     JSONContent = requests.get(url).json()
@@ -42,12 +45,23 @@ def get_airtemp_data_from_date(date):
     print("Data for " + str(date) + " scraped!")
     return df_retrieved
 
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def get_rainfall_data_from_date(date):
     url = "https://api.data.gov.sg/v1/environment/rainfall?date=" + str(date) # for daily API request
     JSONContent = requests.get(url).json()
     content = json.dumps(JSONContent, indent = 4, sort_keys=True)
     json_retrieved = (content[content.find("items")+7:content.find("metadata")-13] + ']').replace(" ", "").replace("\n", "")
     df_retrieved = pd.read_json(json_retrieved, orient="columns")    
+    print("Data for " + str(date) + " scraped!")
+    return df_retrieved
+
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
+def get_relative_humidity_data_from_date(date):
+    url = "https://api.data.gov.sg/v1/environment/relative-humidity?date=" + str(date) # for daily API request
+    JSONContent = requests.get(url).json()
+    content = json.dumps(JSONContent, indent = 4, sort_keys=True)
+    json_retrieved = (content[content.find("items")+7:content.find("metadata")-13] + ']').replace(" ", "").replace("\n", "")
+    df_retrieved = pd.read_json(json_retrieved, orient="columns")
     print("Data for " + str(date) + " scraped!")
     return df_retrieved
 
@@ -59,6 +73,8 @@ def get_data_from_date_range(date_range, data_type):
                 df_date = get_airtemp_data_from_date(str(date))
             elif data_type == 'rainfall':
                 df_date = get_rainfall_data_from_date(str(date))
+            elif data_type == 'relative-humidity':
+                df_date = get_relative_humidity_data_from_date(str(date))
         except ValueError:
             continue
         df_date_list.append(df_date)
@@ -134,7 +150,7 @@ try:
             date_list = [base + datetime.timedelta(days=x) for x in range(int((datetime.datetime.now().date() - base).days+1))]
 
     # Initialize type of data to extract from NEA data API
-    datatype_entry = input('Choose type of data to extract from API - 1. air temperature 2. rainfall : ')
+    datatype_entry = input('Choose type of data to extract from API - 1. air temperature 2. rainfall 3. relative humidity: ')
     datatype_choice = int(datatype_entry)
     while (datatype_choice):
         if datatype_choice == 1:
@@ -142,6 +158,9 @@ try:
             break
         elif datatype_choice == 2:
             data_type = 'rainfall'
+            break
+        elif datatype_choice == 3:
+            data_type = 'relative-humidity'
             break
         else:
             datatype_entry = input('Invalid input. Please choose type of data to extract from API - 1. air temperature 2. rainfall: ')
@@ -154,22 +173,13 @@ try:
         print(e)
 
     # Get device ID dataframe
-    if data_type == 'air-temperature':
-        try:
-            with open('df_device_id-airtemp.pickle', 'rb') as f:
-                df_device_id = pickle.load(f)
-        except:
-            df_device_id = pd.concat([get_device_id(date, data_type) for date in date_list])
-            with open('df_device_id-airtemp.pickle', 'wb') as f:
-                pickle.dump(df_device_id, f)
-    elif data_type == 'rainfall':
-        try:
-            with open('df_device_id-rainfall.pickle', 'rb') as f:
-                df_device_id = pickle.load(f)
-        except:
-            df_device_id = pd.concat([get_device_id(date, data_type) for date in date_list])
-            with open('df_device_id-rainfall.pickle', 'wb') as f:
-                pickle.dump(df_device_id, f)        
+    try:
+        with open('df_device_id.pickle', 'rb') as f:
+            df_device_id = pickle.load(f)
+    except:
+        df_device_id = pd.concat([get_device_id(date, data_type) for date in date_list])
+        with open('df_device_id.pickle', 'wb') as f:
+            pickle.dump(df_device_id, f)
     # Create dictionary of station IDs for switch case to initialize station ID
     device_id_list = set(df_device_id[['device_id', 'id']].set_index('device_id')['id'])
     device_id_dict = {id:id for id in device_id_list}
@@ -200,7 +210,7 @@ try:
         df_extracted_cleaned['timestamp'] = [utc_to_local(dt) for dt in df_extracted_cleaned['timestamp']]
 
     # write to CSV
-    df_extracted_cleaned.to_csv('nea_' + data_type + '_' + stationid_choice + '_from_' + str(date_list[0]) + '_to_' + str(date_list[-1]) + '.csv')
+    df_extracted_cleaned.to_csv(data_type + '/nea_' + data_type + '_' + stationid_choice + '_from_' + str(date_list[0]) + '_to_' + str(date_list[-1]) + '.csv')
     print('Data extraction complete!')
 
 except Exception as err:
