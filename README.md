@@ -5,6 +5,9 @@ Currently, the datasets that are being scraped from are:
 1. Realtime Weather Readings across Singapore
 - Air Temperature across Singapore
 - Rainfall across Singapore
+- Relative Humidity across Singapore
+- Wind Direction across Singapore
+- Wind Speed across Singapore
 2. PM2.5 (code refactoring in progress)
 3. UV Index (work in progress)
 
