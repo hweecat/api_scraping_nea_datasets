@@ -39,18 +39,20 @@ import os
 
 from retrying import retry
 
+
+DATA_GOV_SG_API_KEY = os.getenv("DATA_GOV_SG_API_KEY", default=None)
+
+
 @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def get_realtime_data_from_date(date, data_type):
-    url = f"https://api.data.gov.sg/v1/environment/{data_type}?date={date}" # for daily API request
-    JSONContent = requests.get(url).json()
-    content = json.dumps(JSONContent, indent=4, sort_keys=True)
+    url = f"https://api-open.data.gov.sg/v2/real-time/api/{data_type}?date={date}" # for daily API request
+    custom_headers = {}
+    if DATA_GOV_SG_API_KEY:
+        custom_headers['X-Api-Key'] = DATA_GOV_SG_API_KEY
+    response = requests.get(url, headers=custom_headers)
     try:
-        json_retrieved = (
-            (content[content.find("items") + 7 : content.find("metadata") - 13] + "]")
-            .replace(" ", "")
-            .replace("\n", "")
-        )
-        df_retrieved = pd.read_json(json_retrieved, orient="columns")
+        JSONContent = response.json()
+        df_retrieved = pd.json_normalize(JSONContent['data']['readings'], record_path='data', meta=['timestamp'])
         print("Data for " + str(date) + " scraped!")
         return df_retrieved
     except:
@@ -72,14 +74,12 @@ def get_data_from_date_range(date_range, data_type):
 
 def get_device_id(date, data_type):
     url = (
-        "https://api.data.gov.sg/v1/environment/" + data_type + "?date=" + str(date)
+        "https://api-open.data.gov.sg/v2/real-time/api/" + data_type + "?date=" + str(date)
     )  # for daily API request
-    JSONContent = requests.get(url).json()
-    content = json.dumps(JSONContent, indent=4, sort_keys=True)
-    json_device_id = (
-        content[content.find("stations") + 10 : -3].replace(" ", "").replace("\n", "")
-    )
-    df_device_id = pd.read_json(json_device_id, orient="object")
+    custom_headers = {'X-Api-Key': DATA_GOV_SG_API_KEY}
+    JSONContent = requests.get(url, headers=custom_headers).json()
+    json_device_id = JSONContent['data']['stations']
+    df_device_id = pd.json_normalize(json_device_id)
     return df_device_id
 
 
@@ -90,9 +90,8 @@ def df_data_from_json_to_df(reading):
     # fill in null values for station ids without reading values for some timestamps
     for station_id in list(df_device_id["id"]):
         if station_id not in list(df_to_append["station_id"]):
-            df_to_append = df_to_append.append(
-                pd.DataFrame({"station_id": [station_id], "value": [np.nan]})
-            )
+            df_to_append = pd.concat(
+                [df_to_append, pd.DataFrame({"station_id":[station_id],"value": [np.nan]})])
     df_to_append_null_filled = (
         df_to_append.reset_index().drop(columns=["index"]).reset_index(drop=True)
     )
