@@ -1,0 +1,5 @@
+numpy==2.0.2
+pandas==2.2.2
+requests==2.32.4
+tqdm==4.67.1
+retrying==1.4.2

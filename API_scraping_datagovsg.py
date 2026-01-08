@@ -120,6 +120,9 @@ Input:
         - Currently supported for extraction of:
             1. Air Temperature
             2. Rainfall
+            3. Relative Humidity
+            4. Wind Direction
+            5. Wind Speed
     4. Device ID
 
 """
@@ -204,10 +207,10 @@ try:
         + str(list(device_id_dict.keys()))
         + "\nChoose station ID to extract data from: "
     )
-    stationid_choice = str(stationid_entry)
+    stationid_str = str(stationid_entry)
     while True:
-        stationid_choice = device_id_dict.get(stationid_choice, None)
-        if stationid_choice == None:
+        stationid_choice = device_id_dict.get(stationid_str, None)
+        if stationid_choice == None and stationid_str != "":
             stationid_entry = input(
                 "Invalid station ID. Please choose station ID to extract data from: "
             )
@@ -224,12 +227,12 @@ try:
     df_extracted = pd.concat(df_reading)
 
     # extract sensor readings for a specific station id
-    df_extracted_stationid = df_extracted[
-        df_extracted["station_id"] == stationid_choice
-    ].reset_index(drop=True)
-    df_extracted_cleaned = pd.concat([df_data, df_extracted_stationid], axis=1).drop(
-        columns=["readings"]
-    )
+    if stationid_str != "":
+        df_extracted_cleaned = df_extracted[
+            df_extracted["stationId"] == stationid_choice
+        ].reset_index(drop=True)
+    else:
+        df_extracted_cleaned = df_extracted
 
     # Convert from UTC Time to SGT Time
     if (
